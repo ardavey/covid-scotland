@@ -80,7 +80,7 @@ foreach my $r ( @ordered_regions ) {
 
 say '</div></p>';
 
-say "<p><small>Data extracted from <a href='$source_page'>Scottish Government website</a>.  Source data is updated daily around 14:00 UK time.</small></p>";
+say "<p><small>Data extracted from <a href='$source_page'>Scottish Government website</a>.</small></p>";
 
 say '<hr width="75%" />';
 
@@ -93,7 +93,7 @@ my $labels = "'".join( "', '", @dates )."'";
 my @colours = ( '#ff0029', '#377eb8', '#66a61e', '#984ea3', '#00d2d5', '#ff7f00', '#af8d00', '#7f80cd', '#b3e900', '#c42e60', '#a65628', '#f781bf', '#8dd3c7', '#bebada' );
 
 say <<HTML;
-<canvas id="regionalChart" width="100%" height="80px"></canvas>
+<canvas id="regionalChart" width="100%" height="100px"></canvas>
 
 <script>
 var ctx = document.getElementById('regionalChart').getContext('2d');
