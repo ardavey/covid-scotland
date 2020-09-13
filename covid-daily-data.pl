@@ -19,7 +19,7 @@ use Data::Dumper;
 my $t0 = [gettimeofday];
 
 my $source_page = 'https://www.gov.scot/publications/coronavirus-covid-19-trends-in-daily-data/';
-my $content_file = './covid-scotland-by-nhs-board.xlsx';
+my $content_file = '/tmp/covid-scotland-by-nhs-board.xlsx';
 
 my $m = WWW::Mechanize->new();
 
