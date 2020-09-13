@@ -15,8 +15,8 @@ use Spreadsheet::Read;
 use Storable;
 
 my $source_page = 'https://www.gov.scot/publications/coronavirus-covid-19-trends-in-daily-data/';
-my $content_file = '/tmp/covid-ss.xlsx';
-my $data_file = '/tmp/covid-data';
+my $content_file = '/home/ardavey/tmp/covid-ss.xlsx';
+my $data_file = '/home/ardavey/tmp/covid-data';
 
 my $m = WWW::Mechanize->new();
 
@@ -27,19 +27,4 @@ $m->get( $ss_link->url_abs(), ':content_file' => $content_file );
 my $book = Spreadsheet::Read->new( $content_file );
 my $sheet = $book->sheet(3);
 
-my $row = $sheet->maxrow;
-my $date = $sheet->cell( "A$row" );
-
-my %data = ();
-
-foreach my $column ( 2..16 ) {
-  my $region = $sheet->cell( $column, 3 );
-  $region =~ s/^NHS //;
-  $data{regional}->{$region } = {
-    today => $sheet->cell( $column, $row ),
-    yesterday => $sheet->cell( $column, $row-1 ),
-    delta => $sheet->cell( $column, $row ) - $sheet->cell( $column, $row-1 ),
-  };
-}
-
-store( \%data, $data_file );
+store( $sheet, $data_file );

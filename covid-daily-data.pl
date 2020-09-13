@@ -10,8 +10,9 @@ use lib qw(
 
 use 5.010;
 
-use WWW::Mechanize;
+#use WWW::Mechanize;
 use Spreadsheet::Read;
+use Storable;
 use Time::HiRes qw( gettimeofday tv_interval );
 
 use Data::Dumper;
@@ -19,16 +20,9 @@ use Data::Dumper;
 my $t0 = [gettimeofday];
 
 my $source_page = 'https://www.gov.scot/publications/coronavirus-covid-19-trends-in-daily-data/';
-my $content_file = '/tmp/covid-scotland-by-nhs-board.xlsx';
+my $content_file = '/home/ardavey/tmp/covid-data';
 
-my $m = WWW::Mechanize->new();
-
-$m->get( $source_page );
-my $ss_link = $m->find_link( text_regex => qr/COVID-19 data by NHS Board/ );
-$m->get( $ss_link->url_abs(), ':content_file' => $content_file );
-
-my $book = Spreadsheet::Read->new( $content_file );
-my $sheet = $book->sheet(3);
+my $sheet = retrieve( $content_file );
 
 my $row = $sheet->maxrow();
 my $date = $sheet->cell( "A$row" );
@@ -99,7 +93,7 @@ my $labels = "'".join( "', '", @dates )."'";
 my @colours = ( '#ff0029', '#377eb8', '#66a61e', '#984ea3', '#00d2d5', '#ff7f00', '#af8d00', '#7f80cd', '#b3e900', '#c42e60', '#a65628', '#f781bf', '#8dd3c7', '#bebada' );
 
 say <<HTML;
-<canvas id="regionalChart" width="100%" height="100px"></canvas>
+<canvas id="regionalChart" width="100%" height="80px"></canvas>
 
 <script>
 var ctx = document.getElementById('regionalChart').getContext('2d');
@@ -145,13 +139,11 @@ say <<HTML;
 });
 </script>
 
-<p><small>Note: The spike on 15 June 2020 is due to the addition of all the UK Gov cases to the database, creating a more accurate picture.</small></p>
-
 <hr width="75%" />
 
 <h4>Cumulative Cases and Cases Per Day - National</h4>
 
-<canvas id="nationalChart" width="100%" height="100px"></canvas>
+<canvas id="nationalChart" width="100%" height="80px"></canvas>
 
 <script>
 var ctx = document.getElementById('nationalChart').getContext('2d');
@@ -234,6 +226,7 @@ say <<'HTML';
 });
 </script>
 
+<p><small>Note: The spike on 15 June 2020 is due to the addition of all the UK Gov cases to the database, creating a more accurate picture.</small></p>
 
 </div>
 
