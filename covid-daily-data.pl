@@ -80,7 +80,7 @@ foreach my $r ( @ordered_regions ) {
 
 say '</div></p>';
 
-say "<p><small>Data extracted from <a href='$source_page'>Scottish Government website</a>.</small></p>";
+say "<p><small>Data extracted from <a href='$source_page'>Scottish Government website</a>.  The source site is updated daily at 14:00 UK time - new data should be available here from 14:05.</small></p>";
 
 say '<hr width="75%" />';
 
