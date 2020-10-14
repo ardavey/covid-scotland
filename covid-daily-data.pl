@@ -20,7 +20,7 @@ use Data::Dumper;
 my $t0 = [gettimeofday];
 
 my $source_page = 'https://www.gov.scot/publications/coronavirus-covid-19-trends-in-daily-data/';
-my $content_file = '/home/ardavey/tmp/covid-data';
+my $content_file = '/home/ardavey/tmp/covid-nhs-board.data';
 
 my $sheet = retrieve( $content_file );
 
@@ -42,7 +42,7 @@ foreach my $column ( 2..16 ) {
 
 print "Content-type:text/html\r\n\r\n";
 
-print <<'HTML';
+say <<'HTML';
 <!doctype html>
 <html lang="en">
   <head>
@@ -60,11 +60,13 @@ print <<'HTML';
 <div class="container">
 HTML
 
-say '<h3>COVID-19 in Scotland</h3>';
+say <<HTML;
+<h3>COVID-19 in Scotland</h3>
 
-say '<h4>New Cases Today by NHS Board</h4>';
+<h4>New Cases Today by NHS Board</h4>
 
-say "<p>There were $data{Scotland}->{delta} new cases of COVID-19 recorded in Scotland on $date.</p>";
+<p>There were $data{Scotland}->{delta} new cases of COVID-19 recorded in Scotland on $date.</p>
+HTML
 
 my @regions = keys %data;
 my @ordered_regions = sort { $data{$b}->{delta} <=> $data{$a}->{delta} or $a cmp $b } @regions;
@@ -78,13 +80,17 @@ foreach my $r ( @ordered_regions ) {
   say "<div class='col-4'>$data{$r}->{delta}</div>";
 }
 
-say '</div></p>';
+say <<HTML;
 
-say "<p><small>Data extracted from <a href='$source_page'>Scottish Government website</a>.  The source site is updated daily at 14:00 UK time - new data should be available here from 14:05.</small></p>";
+</div></p>
 
-say '<hr width="75%" />';
+<p><small>Data extracted from <a href='$source_page'>Scottish Government website</a>.<br />
+The source site is updated daily at 14:00 UK time - this site updates at 14:05.</small></p>
 
-say '<h4>Cumulative Cases by NHS Board</h4>';
+<hr width="75%" />
+
+<h4>Cumulative Cases by NHS Board</h4>
+HTML
 
 my @dates = $sheet->column( 1 );
 ( undef, undef, undef, @dates ) = @dates;
@@ -226,7 +232,8 @@ say <<'HTML';
 });
 </script>
 
-<p><small>Note: The spike on 15 June 2020 is due to the addition of all the UK Gov cases to the database, creating a more accurate picture.</small></p>
+<p><small>Note: The spike on 15 June 2020 is due to the inclusion of results from the UK Gov testing programme.
+Prior to this date, figures only include those tested through NHS labs.</small></p>
 
 </div>
 
