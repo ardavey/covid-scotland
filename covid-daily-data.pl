@@ -74,19 +74,33 @@ my @nhs_boards = keys %nhs_board_data;
 my @ordered_nhs_boards = sort { $nhs_board_data{$b}->{delta} <=> $nhs_board_data{$a}->{delta} or $a cmp $b } @nhs_boards;
 shift @ordered_nhs_boards;
 
-say '<p><div class="row">';
+say <<HTML;
+<div class="table-responsive">
+
+<table class="table table-striped table-hover">
+<thead>
+  <th scope="col">NHS Board</th>
+  <th scope="col">New Cases</th>
+</thead>
+<tbody>
+HTML
 
 foreach my $board ( @ordered_nhs_boards ) {
   last if ( $nhs_board_data{$board}->{delta} == 0 );
-  say "<div class='col-8'>$board</div>";
-  say "<div class='col-4'>$nhs_board_data{$board}->{delta}</div>";
+say <<HTML;
+  <tr>
+    <td>$board</td>
+    <td>$nhs_board_data{$board}->{delta}</td>
+  </tr>
+HTML
 }
 
 say <<HTML;
+</tbody>
+</table>
+</div>
 
-</div></p>
-
-<p><small>Data extracted from <a href='$source_page'>Scottish Government website</a>.<br />
+<p><small>Data is extracted automatically from the <a href='$source_page'>Scottish Government website</a>.<br />
 The source site is updated daily at 14:00 UK time - this site updates at 14:05.</small></p>
 
 <hr width="75%" />
@@ -100,6 +114,12 @@ The source site is updated daily at 14:00 UK time - this site updates at 14:05.<
     <li class="nav-item">
         <a class="nav-link" id="scotland-graph-tab" data-toggle="tab" href="#nationalgraph" role="tab" aria-controls="nationalgraph" aria-selected="false">National</a>
     </li>
+    <li class="nav-item">
+        <a class="nav-link" id="deaths-graph-tab" data-toggle="tab" href="#deathsgraph" role="tab" aria-controls="deathsgraph" aria-selected="false">Deaths</a>
+    </li>
+    <!-- <li class="nav-item">
+        <a class="nav-link" id="tests-graph-tab" data-toggle="tab" href="#testsgraph" role="tab" aria-controls="testsgraph" aria-selected="false">Tests</a>
+    </li> -->
 </ul>
 
 <div class="tab-content" id="myTabContent">
@@ -264,6 +284,13 @@ say <<'HTML';
 </script>
 
     </div>
+    <div class="tab-pane fade" id="deathsgraph" role="tabpanel" aria-labelledby="deaths-graph-tab">
+      <p>Coming soon - daily/cumulative deaths</p>
+    </div>
+    
+    <!-- <div class="tab-pane fade" id="testsgraph" role="tabpanel" aria-labelledby="tests-graph-tab">
+      <p>Coming soon - daily/cumulative tests</p>
+    </div> -->    
 </div>
 
 <hr width="75%" />
