@@ -10,29 +10,31 @@ use lib qw(
 
 use 5.010;
 
-#use WWW::Mechanize;
 use Spreadsheet::Read;
 use Storable;
 use Time::HiRes qw( gettimeofday tv_interval );
+use List::Util qw( shuffle );
 
 use Data::Dumper;
 
 my $t0 = [gettimeofday];
 
-my $source_page = 'https://www.gov.scot/publications/coronavirus-covid-19-trends-in-daily-data/';
-my $content_file = '/home/ardavey/tmp/covid-nhs-board.data';
+my $tmp_dir = '/home/ardavey/tmp/';
 
-my $sheet = retrieve( $content_file );
+my $source_page = 'https://www.gov.scot/publications/coronavirus-covid-19-trends-in-daily-data/';
+my $nhs_board_data_file = $tmp_dir.'covid-nhs-board.data';
+
+my $sheet = retrieve( $nhs_board_data_file );
 
 my $row = $sheet->maxrow();
 my $date = $sheet->cell( "A$row" );
 
-my %data = ();
+my %nhs_board_data = ();
 
 foreach my $column ( 2..16 ) {
-  my $region = $sheet->cell( $column, 3 );
-  $region =~ s/^NHS //;
-  $data{ $region } = {
+  my $nhs_board = $sheet->cell( $column, 3 );
+  $nhs_board =~ s/^NHS //;
+  $nhs_board_data{ $nhs_board } = {
     today => $sheet->cell( $column, $row ),
     yesterday => $sheet->cell( $column, $row-1 ),
     delta => $sheet->cell( $column, $row ) - $sheet->cell( $column, $row-1 ),
@@ -65,19 +67,19 @@ say <<HTML;
 
 <h4>New Cases Today by NHS Board</h4>
 
-<p>There were $data{Scotland}->{delta} new cases of COVID-19 recorded in Scotland on $date.</p>
+<p>There were $nhs_board_data{Scotland}->{delta} new cases of COVID-19 recorded in Scotland on $date.</p>
 HTML
 
-my @regions = keys %data;
-my @ordered_regions = sort { $data{$b}->{delta} <=> $data{$a}->{delta} or $a cmp $b } @regions;
-shift @ordered_regions;
+my @nhs_boards = keys %nhs_board_data;
+my @ordered_nhs_boards = sort { $nhs_board_data{$b}->{delta} <=> $nhs_board_data{$a}->{delta} or $a cmp $b } @nhs_boards;
+shift @ordered_nhs_boards;
 
 say '<p><div class="row">';
 
-foreach my $r ( @ordered_regions ) {
-  last if ( $data{$r}->{delta} == 0 );
-  say "<div class='col-8'>$r</div>";
-  say "<div class='col-4'>$data{$r}->{delta}</div>";
+foreach my $board ( @ordered_nhs_boards ) {
+  last if ( $nhs_board_data{$board}->{delta} == 0 );
+  say "<div class='col-8'>$board</div>";
+  say "<div class='col-4'>$nhs_board_data{$board}->{delta}</div>";
 }
 
 say <<HTML;
@@ -89,17 +91,37 @@ The source site is updated daily at 14:00 UK time - this site updates at 14:05.<
 
 <hr width="75%" />
 
-<h4>Cumulative Cases by NHS Board</h4>
+<h4>Graphs</h4>
+
+<ul class="nav nav-tabs" id="myTab" role="tablist">
+    <li class="nav-item">
+        <a class="nav-link active" id="nhs-board-graph-tab" data-toggle="tab" href="#nhsboardgraph" role="tab" aria-controls="nhsboardgraph" aria-selected="true">Cumulative by NHS Board</a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link" id="scotland-graph-tab" data-toggle="tab" href="#nationalgraph" role="tab" aria-controls="nationalgraph" aria-selected="false">Cumulative & Daily National</a>
+    </li>
+</ul>
+
+<div class="tab-content" id="myTabContent">
+    <br />
+    <div class="tab-pane fade show active" id="nhsboardgraph" role="tabpanel" aria-labelledby="nhs-board-graph-tab">
+    
 HTML
 
 my @dates = $sheet->column( 1 );
 ( undef, undef, undef, @dates ) = @dates;
+
+# Convert YYYY-MM-DD to DD/MM
+foreach ( @dates ) {
+  $_ =~ s!(\d{4})-(\d{2})-(\d{2})!$3/$2!;
+}
+
 my $labels = "'".join( "', '", @dates )."'";
 
-my @colours = ( '#ff0029', '#377eb8', '#66a61e', '#984ea3', '#00d2d5', '#ff7f00', '#af8d00', '#7f80cd', '#b3e900', '#c42e60', '#a65628', '#f781bf', '#8dd3c7', '#bebada' );
+my @colours = shuffle( '#ff0029', '#377eb8', '#66a61e', '#984ea3', '#00d2d5', '#ff7f00', '#af8d00', '#7f80cd', '#b3e900', '#c42e60', '#a65628', '#f781bf', '#8dd3c7', '#bebada' );
 
 say <<HTML;
-<canvas id="regionalChart" width="100%" height="100px"></canvas>
+<canvas id="regionalChart" width="100%" height="70px"></canvas>
 
 <script>
 var ctx = document.getElementById('regionalChart').getContext('2d');
@@ -137,7 +159,12 @@ say <<HTML;
     },
     options: {
       responsive: true,
+      title: {
+        display: true,
+        text: 'Cumulative Cases by NHS Board'
+      },
       legend: {
+        display: false,
         position: 'bottom'
       },
       scales: {}
@@ -145,11 +172,10 @@ say <<HTML;
 });
 </script>
 
-<hr width="75%" />
+    </div>
+    <div class="tab-pane fade" id="nationalgraph" role="tabpanel" aria-labelledby="national-graph-tab">
 
-<h4>Cumulative Cases and Cases Per Day - National</h4>
-
-<canvas id="nationalChart" width="100%" height="80px"></canvas>
+<canvas id="nationalChart" width="100%" height="70px"></canvas>
 
 <script>
 var ctx = document.getElementById('nationalChart').getContext('2d');
@@ -164,13 +190,13 @@ my @cells = $sheet->cellcolumn( 16 );
 my ( undef, undef, undef, @values ) = @cells;
 map { $_ =~ s/\*/0/g } @values;
 my $values = join( ", ", @values );
-my $colour = 'black';
+
 print <<DATASET;
       {
           type: 'line',
           label: 'Cumulative cases',
-          backgroundColor: 'black',
-          borderColor: 'black',
+          backgroundColor: 'darkblue',
+          borderColor: 'darkblue',
           borderWidth: 1,
           data: [$values],
           fill: false,
@@ -208,7 +234,12 @@ say <<'HTML';
     options: {
       responsive: true,
       legend: {
+        display: false,
         position: 'bottom'
+      },
+      title: {
+        display: true,
+        text: 'Cumulative Cases and Cases Per Day - National'
       },
       scales: {
         yAxes: [{
@@ -231,6 +262,11 @@ say <<'HTML';
     }
 });
 </script>
+
+    </div>
+</div>
+
+<hr width="75%" />
 
 <p><small>Note: The spike on 15 June 2020 is due to the inclusion of results from the UK Gov testing programme.
 Prior to this date, figures only include those tested through NHS labs.</small></p>
