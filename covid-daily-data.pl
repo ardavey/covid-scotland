@@ -95,10 +95,10 @@ The source site is updated daily at 14:00 UK time - this site updates at 14:05.<
 
 <ul class="nav nav-tabs" id="myTab" role="tablist">
     <li class="nav-item">
-        <a class="nav-link active" id="nhs-board-graph-tab" data-toggle="tab" href="#nhsboardgraph" role="tab" aria-controls="nhsboardgraph" aria-selected="true">Cumulative by NHS Board</a>
+        <a class="nav-link active" id="nhs-board-graph-tab" data-toggle="tab" href="#nhsboardgraph" role="tab" aria-controls="nhsboardgraph" aria-selected="true">NHS Board</a>
     </li>
     <li class="nav-item">
-        <a class="nav-link" id="scotland-graph-tab" data-toggle="tab" href="#nationalgraph" role="tab" aria-controls="nationalgraph" aria-selected="false">Cumulative & Daily National</a>
+        <a class="nav-link" id="scotland-graph-tab" data-toggle="tab" href="#nationalgraph" role="tab" aria-controls="nationalgraph" aria-selected="false">National</a>
     </li>
 </ul>
 
