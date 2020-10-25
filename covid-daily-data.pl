@@ -109,22 +109,22 @@ The source site is updated daily at 14:00 UK time - this site updates at 14:05.<
 
 <ul class="nav nav-tabs" id="myTab" role="tablist">
     <li class="nav-item">
-        <a class="nav-link active" id="nhs-board-graph-tab" data-toggle="tab" href="#nhsboardgraph" role="tab" aria-controls="nhsboardgraph" aria-selected="true">NHS Board</a>
+        <a class="nav-link active" id="scotland-graph-tab" data-toggle="tab" href="#nationalgraph" role="tab" aria-controls="nationalgraph" aria-selected="false">National</a>
     </li>
     <li class="nav-item">
-        <a class="nav-link" id="scotland-graph-tab" data-toggle="tab" href="#nationalgraph" role="tab" aria-controls="nationalgraph" aria-selected="false">National</a>
-    </li>
-    <li class="nav-item">
-        <a class="nav-link" id="deaths-graph-tab" data-toggle="tab" href="#deathsgraph" role="tab" aria-controls="deathsgraph" aria-selected="false">Deaths</a>
+        <a class="nav-link" id="nhs-board-graph-tab" data-toggle="tab" href="#nhsboardgraph" role="tab" aria-controls="nhsboardgraph" aria-selected="true">NHS Board</a>
     </li>
     <!-- <li class="nav-item">
+        <a class="nav-link" id="deaths-graph-tab" data-toggle="tab" href="#deathsgraph" role="tab" aria-controls="deathsgraph" aria-selected="false">Deaths</a>
+    </li>
+    <li class="nav-item">
         <a class="nav-link" id="tests-graph-tab" data-toggle="tab" href="#testsgraph" role="tab" aria-controls="testsgraph" aria-selected="false">Tests</a>
     </li> -->
 </ul>
 
 <div class="tab-content" id="myTabContent">
     <br />
-    <div class="tab-pane fade show active" id="nhsboardgraph" role="tabpanel" aria-labelledby="nhs-board-graph-tab">
+    <div class="tab-pane fade" id="nhsboardgraph" role="tabpanel" aria-labelledby="nhs-board-graph-tab">
     
 HTML
 
@@ -143,25 +143,30 @@ my @colours = shuffle( '#ff0029', '#377eb8', '#66a61e', '#984ea3', '#00d2d5', '#
 say <<HTML;
 <canvas id="regionalChart" width="100%" height="70px"></canvas>
 
+<!-- <button id="toggleZoomNHSBoard">Toggle All/Last 30 days</button> -->
+
 <script>
+var title = 'Cumulative Cases by NHS Board - All Time';
+var labels = [$labels];
+
 var ctx = document.getElementById('regionalChart').getContext('2d');
 var myChart = new Chart(ctx, {
     type: 'line',
     data: {
-        labels: [$labels],
+        labels: labels,
         datasets: [
 HTML
 
 foreach my $col ( 2..15 ) {
   my @cells = $sheet->cellcolumn( $col );
-  my ( undef, undef, $label, @values ) = @cells;
+  my ( undef, undef, $board, @values ) = @cells;
   map { $_ =~ s/\*/0/g } @values;
-  $label =~ s/^NHS //;
+  $board =~ s/^NHS //;
   my $values = join( ", ", @values );
   my $colour = $colours[$col-2];
-  print <<DATASET;
+  say <<DATASET;
         {
-            label: '$label',
+            label: '$board',
             backgroundColor: '$colour',
             borderColor: '$colour',
             borderWidth: 1,
@@ -181,7 +186,7 @@ say <<HTML;
       responsive: true,
       title: {
         display: true,
-        text: 'Cumulative Cases by NHS Board'
+        text: title,
       },
       legend: {
         display: false,
@@ -190,62 +195,86 @@ say <<HTML;
       scales: {}
     }
 });
+
+/*
+document.getElementById('toggleZoomNHSBoard').addEventListener('click', function() {
+    myChart.options.title.text = myChart.options.title.text == title ? title30 : title;
+    myChart.data.labels = myChart.data.labels.length == 30 ? labels : labels.slice( -30 );
+
+    myChart.data.datasets[0].data = myChart.data.datasets[0].data.length == 30 ? dataCumulative : dataCumulative.slice( -30 );
+    myChart.data.datasets[1].data = myChart.data.datasets[1].data.length == 30 ? dataDeltas : dataDeltas.slice( -30 );
+    myChart.update( { duration: 0 } );
+});
+*/
+
 </script>
 
     </div>
-    <div class="tab-pane fade" id="nationalgraph" role="tabpanel" aria-labelledby="national-graph-tab">
-
-<canvas id="nationalChart" width="100%" height="70px"></canvas>
-
-<script>
-var ctx = document.getElementById('nationalChart').getContext('2d');
-var myChart = new Chart(ctx, {
-    type: 'bar',
-    data: {
-        labels: [$labels],
-        datasets: [
 HTML
+
+
+# Graph of national cumulative and daily delta
 
 my @cells = $sheet->cellcolumn( 16 );
 my ( undef, undef, undef, @values ) = @cells;
 map { $_ =~ s/\*/0/g } @values;
 my $values = join( ", ", @values );
 
-print <<DATASET;
+my @deltas = ( 0 );
+foreach my $i ( 1..$#values ) {
+  push @deltas, $values[$i]-$values[$i-1];
+}
+# remove anomaly
+$deltas[100] = 0;
+my $deltas = join( ', ', @deltas );
+
+say <<HTML;  
+  <div class="tab-pane fade show active" id="nationalgraph" role="tabpanel" aria-labelledby="national-graph-tab">
+
+<canvas id="nationalChart" width="100%" height="70px"></canvas>
+
+<button type="button" class="btn btn-dark btn-sm" id="toggleZoomNational">Toggle All/Last 30 days</button>
+
+<script>
+var title = 'National Cumulative and Cases Per Day - All Time';
+var title30 = 'National Cumulative and Cases Per Day - Last 30 Days';
+
+var labels = [$labels];
+var dataCumulative = [$values];
+var dataDeltas = [$deltas];
+
+var ctx = document.getElementById('nationalChart').getContext('2d');
+var myChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+        labels: labels,
+        datasets: [
+HTML
+
+
+say <<DATASETS;
       {
           type: 'line',
           label: 'Cumulative cases',
           backgroundColor: 'darkblue',
           borderColor: 'darkblue',
           borderWidth: 1,
-          data: [$values],
+          data: dataCumulative,
           fill: false,
           pointRadius: 1,
           pointHoverRadius: 2,
           yAxisID: 'y-axis-1',
       },
-DATASET
-
-my @deltas = ( 0 );
-foreach my $i ( 1..$#values ) {
-  push @deltas, $values[$i]-$values[$i-1];
-}
-my $deltas = join( ', ', @deltas );
-
-# remove anomaly
-$deltas =~ s/, 2275,/, 0,/;
-
-print <<DATASET;
       {
           type: 'bar',
           label: 'New cases',
           backgroundColor: 'lightblue',
           borderColor: 'lightblue',
           borderWidth: 0,
-          data: [$deltas],
+          data: dataDeltas,
           yAxisID: 'y-axis-2',
       },
-DATASET
+DATASETS
 
 
 say <<'HTML';
@@ -259,7 +288,7 @@ say <<'HTML';
       },
       title: {
         display: true,
-        text: 'Cumulative Cases and Cases Per Day - National'
+        text: title,
       },
       scales: {
         yAxes: [{
@@ -281,14 +310,23 @@ say <<'HTML';
       }
     }
 });
+
+document.getElementById('toggleZoomNational').addEventListener('click', function() {
+    myChart.options.title.text = myChart.options.title.text == title ? title30 : title;
+    myChart.data.labels = myChart.data.labels.length == 30 ? labels : labels.slice( -30 );
+    myChart.data.datasets[0].data = myChart.data.datasets[0].data.length == 30 ? dataCumulative : dataCumulative.slice( -30 );
+    myChart.data.datasets[1].data = myChart.data.datasets[1].data.length == 30 ? dataDeltas : dataDeltas.slice( -30 );
+    myChart.update( { duration: 0 } );
+ });
+
 </script>
 
     </div>
-    <div class="tab-pane fade" id="deathsgraph" role="tabpanel" aria-labelledby="deaths-graph-tab">
+    <!-- <div class="tab-pane fade" id="deathsgraph" role="tabpanel" aria-labelledby="deaths-graph-tab">
       <p>Coming soon - daily/cumulative deaths</p>
     </div>
     
-    <!-- <div class="tab-pane fade" id="testsgraph" role="tabpanel" aria-labelledby="tests-graph-tab">
+    <div class="tab-pane fade" id="testsgraph" role="tabpanel" aria-labelledby="tests-graph-tab">
       <p>Coming soon - daily/cumulative tests</p>
     </div> -->    
 </div>
@@ -308,4 +346,4 @@ Prior to this date, figures only include those tested through NHS labs.</small><
 </html>
 HTML
 
-say "<!-- " . tv_interval( $t0 ) . " seconds -->";
+say "<!-- Generated in " . tv_interval( $t0 ) . " seconds -->";
