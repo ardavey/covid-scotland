@@ -97,6 +97,8 @@ say <<HTML;
 
 <p class="lead">There were $nhs_board_data{Scotland}->{delta} new cases of COVID-19 and $deaths_data{delta_deaths}->[-1] new confirmed death(s) recorded in Scotland on $date.</p>
 
+<hr width="75%" />
+
 <h4>New Cases Today by NHS Board</h4>
 
 HTML
@@ -109,21 +111,22 @@ shift @ordered_nhs_boards;
 say <<HTML;
 <div class="table-responsive">
 
-<table class="table-sm table-striped">
-<thead>
+<table class="table table-sm table-striped">
+<thead class="thead-light">
   <th scope="col">NHS Board</th>
-  <th scope="col">New Cases</th>
-  <th scope="col">Daily Difference</th>
+  <th scope="col">New Cases <small>(Delta)</small></th>
 </thead>
 <tbody>
 HTML
 
 foreach my $board ( @ordered_nhs_boards ) {
+  next if (   $nhs_board_data{$board}->{delta} == 0
+           && $nhs_board_data{$board}->{delta_delta} == 0 );
+  
 say <<HTML;
   <tr>
     <td>$board</td>
-    <td>$nhs_board_data{$board}->{delta}</td>
-    <td>$nhs_board_data{$board}->{delta_delta}</td>
+    <td>$nhs_board_data{$board}->{delta} <small>($nhs_board_data{$board}->{delta_delta})</small></td>
   </tr>
 HTML
 }
@@ -132,9 +135,6 @@ say <<HTML;
 </tbody>
 </table>
 </div>
-
-<p><small>Data is extracted automatically from the <a href='$source_page'>Scottish Government website</a>.<br />
-The source site is updated daily at 14:00 UK time - this site updates at 14:05.</small></p>
 
 <hr width="75%" />
 
@@ -176,17 +176,15 @@ my @colours = shuffle( '#ff0029', '#377eb8', '#66a61e', '#984ea3', '#00d2d5', '#
 say <<HTML;
 <canvas id="regionalChart" width="100%" height="70px"></canvas>
 
-<!-- <button id="toggleZoomNHSBoard">Toggle All/Last 30 days</button> -->
-
 <script>
-var title = 'Cumulative Cases by NHS Board - All Time';
-var labels = [$labels];
+var regionalTitle = 'Cumulative Cases by NHS Board - All Time';
+var regionalLabels = [$labels];
 
 var ctx = document.getElementById('regionalChart').getContext('2d');
-var myChart = new Chart(ctx, {
+var regionalChart = new Chart(ctx, {
     type: 'line',
     data: {
-        labels: labels,
+        labels: regionalLabels,
         datasets: [
 HTML
 
@@ -219,7 +217,7 @@ say <<HTML;
       responsive: true,
       title: {
         display: true,
-        text: title,
+        text: regionalTitle,
       },
       legend: {
         display: false,
@@ -228,17 +226,6 @@ say <<HTML;
       scales: {}
     }
 });
-
-/*
-document.getElementById('toggleZoomNHSBoard').addEventListener('click', function() {
-    myChart.options.title.text = myChart.options.title.text == title ? title30 : title;
-    myChart.data.labels = myChart.data.labels.length == 30 ? labels : labels.slice( -30 );
-
-    myChart.data.datasets[0].data = myChart.data.datasets[0].data.length == 30 ? dataCumulative : dataCumulative.slice( -30 );
-    myChart.data.datasets[1].data = myChart.data.datasets[1].data.length == 30 ? dataDeltas : dataDeltas.slice( -30 );
-    myChart.update( { duration: 0 } );
-});
-*/
 
 </script>
 
@@ -269,18 +256,18 @@ say <<HTML;
 <button type="button" class="btn btn-outline-danger btn-sm" id="toggleZoomNational">Toggle All/Last 30 days</button>
 
 <script>
-var title = 'National Cumulative Cases / Cases Per Day - All Time';
-var title30 = 'National Cumulative Cases / Cases Per Day - Last 30 Days';
+var nationalTitle = 'National Cumulative Cases / Cases Per Day - All Time';
+var nationalTitle30 = 'National Cumulative Cases / Cases Per Day - Last 30 Days';
 
-var labels = [$labels];
-var dataCumulative = [$values];
-var dataDeltas = [$deltas];
+var nationalLabels = [$labels];
+var nationalDataCumulative = [$values];
+var nationalDataDeltas = [$deltas];
 
 var ctx = document.getElementById('nationalChart').getContext('2d');
-var myChart = new Chart(ctx, {
+var nationalChart = new Chart(ctx, {
     type: 'bar',
     data: {
-        labels: labels,
+        labels: nationalLabels,
         datasets: [
           {
               type: 'line',
@@ -288,7 +275,7 @@ var myChart = new Chart(ctx, {
               backgroundColor: 'darkblue',
               borderColor: 'darkblue',
               borderWidth: 1,
-              data: dataCumulative,
+              data: nationalDataCumulative,
               fill: false,
               pointRadius: 1,
               pointHoverRadius: 2,
@@ -300,7 +287,7 @@ var myChart = new Chart(ctx, {
               backgroundColor: 'lightblue',
               borderColor: 'lightblue',
               borderWidth: 0,
-              data: dataDeltas,
+              data: nationalDataDeltas,
               yAxisID: 'y-axis-2',
           },
       ]
@@ -313,7 +300,11 @@ var myChart = new Chart(ctx, {
       },
       title: {
         display: true,
-        text: title,
+        text: nationalTitle,
+      },
+      tooltips: {
+        mode: 'index',
+        intersect: false,
       },
       scales: {
         yAxes: [{
@@ -337,11 +328,11 @@ var myChart = new Chart(ctx, {
 });
 
 document.getElementById('toggleZoomNational').addEventListener('click', function() {
-    myChart.options.title.text = myChart.options.title.text == title ? title30 : title;
-    myChart.data.labels = myChart.data.labels.length == 30 ? labels : labels.slice( -30 );
-    myChart.data.datasets[0].data = myChart.data.datasets[0].data.length == 30 ? dataCumulative : dataCumulative.slice( -30 );
-    myChart.data.datasets[1].data = myChart.data.datasets[1].data.length == 30 ? dataDeltas : dataDeltas.slice( -30 );
-    myChart.update( { duration: 0 } );
+    nationalChart.options.title.text = nationalChart.options.title.text == nationalTitle ? nationalTitle30 : nationalTitle;
+    nationalChart.data.labels = nationalChart.data.labels.length == 30 ? nationalLabels : nationalLabels.slice( -30 );
+    nationalChart.data.datasets[0].data = nationalChart.data.datasets[0].data.length == 30 ? nationalDataCumulative : nationalDataCumulative.slice( -30 );
+    nationalChart.data.datasets[1].data = nationalChart.data.datasets[1].data.length == 30 ? nationalDataDeltas : nationalDataDeltas.slice( -30 );
+    nationalChart.update( { duration: 0 } );
  });
 
 </script>
@@ -362,7 +353,7 @@ var dataCumulative = [$deaths_data{values_cumulative_deaths}];
 var dataDeltas = [$deaths_data{values_delta_deaths}];
 
 var ctx = document.getElementById('deathsChart').getContext('2d');
-var myChart = new Chart(ctx, {
+var deathsChart = new Chart(ctx, {
     type: 'bar',
     data: {
         labels: labels,
@@ -400,6 +391,10 @@ var myChart = new Chart(ctx, {
         display: true,
         text: title,
       },
+      tooltips: {
+        mode: 'index',
+        intersect: false,
+      },
       scales: {
         yAxes: [{
           type: 'linear',
@@ -422,11 +417,11 @@ var myChart = new Chart(ctx, {
 });
 
 document.getElementById('toggleZoomDeaths').addEventListener('click', function() {
-    myChart.options.title.text = myChart.options.title.text == title ? title30 : title;
-    myChart.data.labels = myChart.data.labels.length == 30 ? labels : labels.slice( -30 );
-    myChart.data.datasets[0].data = myChart.data.datasets[0].data.length == 30 ? dataCumulative : dataCumulative.slice( -30 );
-    myChart.data.datasets[1].data = myChart.data.datasets[1].data.length == 30 ? dataDeltas : dataDeltas.slice( -30 );
-    myChart.update( { duration: 0 } );
+    deathsChart.options.title.text = deathsChart.options.title.text == title ? title30 : title;
+    deathsChart.data.labels = deathsChart.data.labels.length == 30 ? labels : labels.slice( -30 );
+    deathsChart.data.datasets[0].data = deathsChart.data.datasets[0].data.length == 30 ? dataCumulative : dataCumulative.slice( -30 );
+    deathsChart.data.datasets[1].data = deathsChart.data.datasets[1].data.length == 30 ? dataDeltas : dataDeltas.slice( -30 );
+    deathsChart.update( { duration: 0 } );
  });
 
 </script>
@@ -443,6 +438,8 @@ document.getElementById('toggleZoomDeaths').addEventListener('click', function()
 <p><small>Note: The spike on 15 June 2020 is due to the inclusion of results from the UK Gov testing programme.
 Prior to this date, figures only include those tested through NHS labs.</small></p>
 
+<p><small>Data is extracted automatically from the <a href='$source_page'>Scottish Government website</a>.<br />
+The source site is updated daily at 14:00 UK time and this site updates at 14:05.</small></p>
 </div>
 
 HTML
