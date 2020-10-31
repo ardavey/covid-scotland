@@ -95,7 +95,7 @@ HTML
 say <<HTML;
 <h3>COVID-19 in Scotland - $date</h3>
 
-<p class="lead">There were $nhs_board_data{Scotland}->{delta} new cases of COVID-19 and $deaths_data{delta_deaths}->[-1] new confirmed death(s) recorded in Scotland on $date.</p>
+<div class="alert alert-primary">There were <mark>$nhs_board_data{Scotland}->{delta} new cases</mark> of COVID-19 and <mark>$deaths_data{delta_deaths}->[-1] new confirmed death(s)</mark> recorded in Scotland on $date.</div>
 
 <hr width="75%" />
 
@@ -253,7 +253,7 @@ say <<HTML;
 
 <canvas id="nationalChart" width="100%" height="70px"></canvas>
 
-<button type="button" class="btn btn-outline-danger btn-sm" id="toggleZoomNational">Toggle All/Last 30 days</button>
+<button type="button" class="btn btn-outline-info btn-sm" id="toggleZoomNational">Toggle All/Last 30 days</button>
 
 <script>
 var nationalTitle = 'National Cumulative Cases / Cases Per Day - All Time';
@@ -342,7 +342,7 @@ document.getElementById('toggleZoomNational').addEventListener('click', function
 
 <canvas id="deathsChart" width="100%" height="70px"></canvas>
 
-<button type="button" class="btn btn-outline-danger btn-sm" id="toggleZoomDeaths">Toggle All/Last 30 days</button>
+<button type="button" class="btn btn-outline-info btn-sm" id="toggleZoomDeaths">Toggle All/Last 30 days</button>
 
 <script>
 var title = 'National Cumulative Deaths / Deaths Per Day - All Time';
