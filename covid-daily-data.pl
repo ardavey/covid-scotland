@@ -93,11 +93,11 @@ say <<'HTML';
 HTML
 
 say <<HTML;
-<h3>COVID-19 in Scotland</h3>
+<h3>COVID-19 in Scotland - $date</h3>
+
+<p class="lead">There were $nhs_board_data{Scotland}->{delta} new cases of COVID-19 and $deaths_data{delta_deaths}->[-1] new confirmed death(s) recorded in Scotland on $date.</p>
 
 <h4>New Cases Today by NHS Board</h4>
-
-<p>There were $nhs_board_data{Scotland}->{delta} new cases of COVID-19 and $deaths_data{delta_deaths}->[-1] new confirmed death(s) recorded in Scotland on $date.</p>
 
 HTML
 
@@ -109,7 +109,7 @@ shift @ordered_nhs_boards;
 say <<HTML;
 <div class="table-responsive">
 
-<table class="table table-striped table-hover">
+<table class="table-sm table-striped">
 <thead>
   <th scope="col">NHS Board</th>
   <th scope="col">New Cases</th>
@@ -269,8 +269,8 @@ say <<HTML;
 <button type="button" class="btn btn-outline-danger btn-sm" id="toggleZoomNational">Toggle All/Last 30 days</button>
 
 <script>
-var title = 'National Cumulative and Cases Per Day - All Time';
-var title30 = 'National Cumulative and Cases Per Day - Last 30 Days';
+var title = 'National Cumulative Cases / Cases Per Day - All Time';
+var title30 = 'National Cumulative Cases / Cases Per Day - Last 30 Days';
 
 var labels = [$labels];
 var dataCumulative = [$values];
@@ -320,12 +320,12 @@ var myChart = new Chart(ctx, {
           type: 'linear',
           display: true,
           position: 'left',
-          id: 'y-axis-1',
+          id: 'y-axis-2',
         }, {
           type: 'linear',
           display: true,
           position: 'right',
-          id: 'y-axis-2',
+          id: 'y-axis-1',
 
           // grid line settings
           gridLines: {
@@ -354,8 +354,8 @@ document.getElementById('toggleZoomNational').addEventListener('click', function
 <button type="button" class="btn btn-outline-danger btn-sm" id="toggleZoomDeaths">Toggle All/Last 30 days</button>
 
 <script>
-var title = 'National Cumulative Deaths and Deaths Per Day - All Time';
-var title30 = 'National Cumulative Deaths and Deaths Per Day - Last 30 Days';
+var title = 'National Cumulative Deaths / Deaths Per Day - All Time';
+var title30 = 'National Cumulative Deaths / Deaths Per Day - Last 30 Days';
 
 var labels = [$deaths_data{labels_dates}];
 var dataCumulative = [$deaths_data{values_cumulative_deaths}];
@@ -405,12 +405,12 @@ var myChart = new Chart(ctx, {
           type: 'linear',
           display: true,
           position: 'left',
-          id: 'y-axis-1',
+          id: 'y-axis-2',
         }, {
           type: 'linear',
           display: true,
           position: 'right',
-          id: 'y-axis-2',
+          id: 'y-axis-1',
 
           // grid line settings
           gridLines: {
