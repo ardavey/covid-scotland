@@ -45,7 +45,7 @@ $m->get( $daily_trends_ss_link->url_abs(), ':content_file' => $daily_trends_ss_f
 # Parse and pull out only the sheets we're interested in
 my $daily_trends_book = Spreadsheet::Read->new( $daily_trends_ss_file );
 my $testing_sheet = $daily_trends_book->sheet(6);
-my $deaths_sheet = $daily_trends_book->sheet(14);
+my $deaths_sheet = $daily_trends_book->sheet(15);
 
 # Store all sheets to file for the website to read
 store( $nhs_board_sheet, $nhs_board_data_file );

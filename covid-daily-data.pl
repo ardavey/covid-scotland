@@ -22,25 +22,55 @@ my $t0 = [gettimeofday];
 my $tmp_dir = '/home/ardavey/tmp/';
 
 my $source_page = 'https://www.gov.scot/publications/coronavirus-covid-19-trends-in-daily-data/';
+my $deaths_data_file = $tmp_dir.'covid-deaths.data';
 my $nhs_board_data_file = $tmp_dir.'covid-nhs-board.data';
 
-my $sheet = retrieve( $nhs_board_data_file );
+my $deaths_data_sheet = retrieve( $deaths_data_file );
+my $nhs_data_sheet = retrieve( $nhs_board_data_file );
 
-my $row = $sheet->maxrow();
-my $date = $sheet->cell( "A$row" );
+# Get all the data we need for the daily count and delta per NHS board
+
+my $nhs_board_row = $nhs_data_sheet->maxrow();
+my $date = $nhs_data_sheet->cell( "A$nhs_board_row" );
+$date =~ s!(\d{4})-(\d{2})-(\d{2})!$3/$2/$1!;
 
 my %nhs_board_data = ();
 
 foreach my $column ( 2..16 ) {
-  my $nhs_board = $sheet->cell( $column, 3 );
+  my $nhs_board = $nhs_data_sheet->cell( $column, 3 );
   $nhs_board =~ s/^NHS //;
   $nhs_board_data{ $nhs_board } = {
-    today => $sheet->cell( $column, $row ),
-    yesterday => $sheet->cell( $column, $row-1 ),
-    delta => $sheet->cell( $column, $row ) - $sheet->cell( $column, $row-1 ),
+    today => $nhs_data_sheet->cell( $column, $nhs_board_row ),
+    yesterday => $nhs_data_sheet->cell( $column, $nhs_board_row-1 ),
+    delta => $nhs_data_sheet->cell( $column, $nhs_board_row ) - $nhs_data_sheet->cell( $column, $nhs_board_row-1 ),
+    delta_delta => sprintf( "%+d", ( $nhs_data_sheet->cell( $column, $nhs_board_row ) - $nhs_data_sheet->cell( $column, $nhs_board_row-1 ) ) - ( $nhs_data_sheet->cell( $column, $nhs_board_row-1 ) - $nhs_data_sheet->cell( $column, $nhs_board_row-2 ) ) ),
   };
+  
+  $nhs_board_data{ $nhs_board }->{delta_delta} = $nhs_board_data{ $nhs_board }->{delta_delta} eq '+0' ? '0' : $nhs_board_data{ $nhs_board }->{delta_delta};
 }
 
+# Now get the death data
+my $deaths_row = $deaths_data_sheet->maxrow();
+
+my %deaths_data = ();
+
+( undef, undef, undef, @{ $deaths_data{dates} } ) = $deaths_data_sheet->column(1);
+( undef, undef, undef, @{ $deaths_data{cumulative_deaths} } ) = $deaths_data_sheet->cellcolumn(2);
+
+push @{ $deaths_data{delta_deaths} }, 0;
+
+foreach my $i ( 1..$#{ $deaths_data{cumulative_deaths} } ) {
+  push @{ $deaths_data{delta_deaths} }, $deaths_data{cumulative_deaths}->[$i] - $deaths_data{cumulative_deaths}->[$i-1];
+}
+
+# Convert YYYY-MM-DD to DD/MM
+foreach ( @{ $deaths_data{dates} } ) {
+  $_ =~ s!\d{4}-(\d{2})-(\d{2})!$2/$1!;
+}
+
+$deaths_data{labels_dates} = "'".join( "', '", @{ $deaths_data{dates} } )."'";
+$deaths_data{values_cumulative_deaths} = join( ', ', @{ $deaths_data{cumulative_deaths} } );
+$deaths_data{values_delta_deaths} = join( ', ', @{ $deaths_data{delta_deaths} } );
 
 print "Content-type:text/html\r\n\r\n";
 
@@ -67,11 +97,13 @@ say <<HTML;
 
 <h4>New Cases Today by NHS Board</h4>
 
-<p>There were $nhs_board_data{Scotland}->{delta} new cases of COVID-19 recorded in Scotland on $date.</p>
+<p>There were $nhs_board_data{Scotland}->{delta} new cases of COVID-19 and $deaths_data{delta_deaths}->[-1] new confirmed death(s) recorded in Scotland on $date.</p>
+
 HTML
 
 my @nhs_boards = keys %nhs_board_data;
-my @ordered_nhs_boards = sort { $nhs_board_data{$b}->{delta} <=> $nhs_board_data{$a}->{delta} or $a cmp $b } @nhs_boards;
+my @ordered_nhs_boards = sort { $nhs_board_data{$b}->{delta} <=> $nhs_board_data{$a}->{delta} or $nhs_board_data{$a}->{delta_delta} cmp $nhs_board_data{$b}->{delta_delta} or $a cmp $b } @nhs_boards;
+# Luckily the "Scotland" entry appears at the start of this list so we can bin it easily
 shift @ordered_nhs_boards;
 
 say <<HTML;
@@ -81,16 +113,17 @@ say <<HTML;
 <thead>
   <th scope="col">NHS Board</th>
   <th scope="col">New Cases</th>
+  <th scope="col">Daily Difference</th>
 </thead>
 <tbody>
 HTML
 
 foreach my $board ( @ordered_nhs_boards ) {
-  last if ( $nhs_board_data{$board}->{delta} == 0 );
 say <<HTML;
   <tr>
     <td>$board</td>
     <td>$nhs_board_data{$board}->{delta}</td>
+    <td>$nhs_board_data{$board}->{delta_delta}</td>
   </tr>
 HTML
 }
@@ -109,15 +142,15 @@ The source site is updated daily at 14:00 UK time - this site updates at 14:05.<
 
 <ul class="nav nav-tabs" id="myTab" role="tablist">
     <li class="nav-item">
-        <a class="nav-link active" id="scotland-graph-tab" data-toggle="tab" href="#nationalgraph" role="tab" aria-controls="nationalgraph" aria-selected="false">National</a>
+        <a class="nav-link active" id="scotland-graph-tab" data-toggle="tab" href="#nationalgraph" role="tab" aria-controls="nationalgraph" aria-selected="false">National Cases</a>
     </li>
     <li class="nav-item">
-        <a class="nav-link" id="nhs-board-graph-tab" data-toggle="tab" href="#nhsboardgraph" role="tab" aria-controls="nhsboardgraph" aria-selected="true">NHS Board</a>
+        <a class="nav-link" id="deaths-graph-tab" data-toggle="tab" href="#deathsgraph" role="tab" aria-controls="deathsgraph" aria-selected="false">National Deaths</a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link" id="nhs-board-graph-tab" data-toggle="tab" href="#nhsboardgraph" role="tab" aria-controls="nhsboardgraph" aria-selected="true">NHS Board Cases</a>
     </li>
     <!-- <li class="nav-item">
-        <a class="nav-link" id="deaths-graph-tab" data-toggle="tab" href="#deathsgraph" role="tab" aria-controls="deathsgraph" aria-selected="false">Deaths</a>
-    </li>
-    <li class="nav-item">
         <a class="nav-link" id="tests-graph-tab" data-toggle="tab" href="#testsgraph" role="tab" aria-controls="testsgraph" aria-selected="false">Tests</a>
     </li> -->
 </ul>
@@ -128,12 +161,12 @@ The source site is updated daily at 14:00 UK time - this site updates at 14:05.<
     
 HTML
 
-my @dates = $sheet->column( 1 );
+my @dates = $nhs_data_sheet->column( 1 );
 ( undef, undef, undef, @dates ) = @dates;
 
 # Convert YYYY-MM-DD to DD/MM
 foreach ( @dates ) {
-  $_ =~ s!(\d{4})-(\d{2})-(\d{2})!$3/$2!;
+  $_ =~ s!\d{4}-(\d{2})-(\d{2})!$2/$1!;
 }
 
 my $labels = "'".join( "', '", @dates )."'";
@@ -158,7 +191,7 @@ var myChart = new Chart(ctx, {
 HTML
 
 foreach my $col ( 2..15 ) {
-  my @cells = $sheet->cellcolumn( $col );
+  my @cells = $nhs_data_sheet->cellcolumn( $col );
   my ( undef, undef, $board, @values ) = @cells;
   map { $_ =~ s/\*/0/g } @values;
   $board =~ s/^NHS //;
@@ -215,7 +248,7 @@ HTML
 
 # Graph of national cumulative and daily delta
 
-my @cells = $sheet->cellcolumn( 16 );
+my @cells = $nhs_data_sheet->cellcolumn( 16 );
 my ( undef, undef, undef, @values ) = @cells;
 map { $_ =~ s/\*/0/g } @values;
 my $values = join( ", ", @values );
@@ -233,7 +266,7 @@ say <<HTML;
 
 <canvas id="nationalChart" width="100%" height="70px"></canvas>
 
-<button type="button" class="btn btn-dark btn-sm" id="toggleZoomNational">Toggle All/Last 30 days</button>
+<button type="button" class="btn btn-outline-danger btn-sm" id="toggleZoomNational">Toggle All/Last 30 days</button>
 
 <script>
 var title = 'National Cumulative and Cases Per Day - All Time';
@@ -249,35 +282,27 @@ var myChart = new Chart(ctx, {
     data: {
         labels: labels,
         datasets: [
-HTML
-
-
-say <<DATASETS;
-      {
-          type: 'line',
-          label: 'Cumulative cases',
-          backgroundColor: 'darkblue',
-          borderColor: 'darkblue',
-          borderWidth: 1,
-          data: dataCumulative,
-          fill: false,
-          pointRadius: 1,
-          pointHoverRadius: 2,
-          yAxisID: 'y-axis-1',
-      },
-      {
-          type: 'bar',
-          label: 'New cases',
-          backgroundColor: 'lightblue',
-          borderColor: 'lightblue',
-          borderWidth: 0,
-          data: dataDeltas,
-          yAxisID: 'y-axis-2',
-      },
-DATASETS
-
-
-say <<'HTML';
+          {
+              type: 'line',
+              label: 'Cumulative cases',
+              backgroundColor: 'darkblue',
+              borderColor: 'darkblue',
+              borderWidth: 1,
+              data: dataCumulative,
+              fill: false,
+              pointRadius: 1,
+              pointHoverRadius: 2,
+              yAxisID: 'y-axis-1',
+          },
+          {
+              type: 'bar',
+              label: 'New cases',
+              backgroundColor: 'lightblue',
+              borderColor: 'lightblue',
+              borderWidth: 0,
+              data: dataDeltas,
+              yAxisID: 'y-axis-2',
+          },
       ]
     },
     options: {
@@ -322,11 +347,93 @@ document.getElementById('toggleZoomNational').addEventListener('click', function
 </script>
 
     </div>
-    <!-- <div class="tab-pane fade" id="deathsgraph" role="tabpanel" aria-labelledby="deaths-graph-tab">
-      <p>Coming soon - daily/cumulative deaths</p>
+    <div class="tab-pane fade" id="deathsgraph" role="tabpanel" aria-labelledby="deaths-graph-tab">
+
+<canvas id="deathsChart" width="100%" height="70px"></canvas>
+
+<button type="button" class="btn btn-outline-danger btn-sm" id="toggleZoomDeaths">Toggle All/Last 30 days</button>
+
+<script>
+var title = 'National Cumulative Deaths and Deaths Per Day - All Time';
+var title30 = 'National Cumulative Deaths and Deaths Per Day - Last 30 Days';
+
+var labels = [$deaths_data{labels_dates}];
+var dataCumulative = [$deaths_data{values_cumulative_deaths}];
+var dataDeltas = [$deaths_data{values_delta_deaths}];
+
+var ctx = document.getElementById('deathsChart').getContext('2d');
+var myChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+        labels: labels,
+        datasets: [
+          {
+              type: 'line',
+              label: 'Cumulative deaths',
+              backgroundColor: 'darkblue',
+              borderColor: 'darkblue',
+              borderWidth: 1,
+              data: dataCumulative,
+              fill: false,
+              pointRadius: 1,
+              pointHoverRadius: 2,
+              yAxisID: 'y-axis-1',
+          },
+          {
+              type: 'bar',
+              label: 'New deaths',
+              backgroundColor: 'lightblue',
+              borderColor: 'lightblue',
+              borderWidth: 0,
+              data: dataDeltas,
+              yAxisID: 'y-axis-2',
+          },
+        ]
+    },
+    options: {
+      responsive: true,
+      legend: {
+        display: false,
+        position: 'bottom'
+      },
+      title: {
+        display: true,
+        text: title,
+      },
+      scales: {
+        yAxes: [{
+          type: 'linear',
+          display: true,
+          position: 'left',
+          id: 'y-axis-1',
+        }, {
+          type: 'linear',
+          display: true,
+          position: 'right',
+          id: 'y-axis-2',
+
+          // grid line settings
+          gridLines: {
+            drawOnChartArea: false, // only want the grid lines for one axis to show up
+          },
+        }],
+      }
+    }
+});
+
+document.getElementById('toggleZoomDeaths').addEventListener('click', function() {
+    myChart.options.title.text = myChart.options.title.text == title ? title30 : title;
+    myChart.data.labels = myChart.data.labels.length == 30 ? labels : labels.slice( -30 );
+    myChart.data.datasets[0].data = myChart.data.datasets[0].data.length == 30 ? dataCumulative : dataCumulative.slice( -30 );
+    myChart.data.datasets[1].data = myChart.data.datasets[1].data.length == 30 ? dataDeltas : dataDeltas.slice( -30 );
+    myChart.update( { duration: 0 } );
+ });
+
+</script>
+
     </div>
     
-    <div class="tab-pane fade" id="testsgraph" role="tabpanel" aria-labelledby="tests-graph-tab">
+    <!-- <div class="tab-pane fade" id="testsgraph" role="tabpanel" aria-labelledby="tests-graph-tab">
       <p>Coming soon - daily/cumulative tests</p>
     </div> -->    
 </div>
@@ -338,6 +445,9 @@ Prior to this date, figures only include those tested through NHS labs.</small><
 
 </div>
 
+HTML
+
+say <<'HTML';
     <!-- Bootstrap -->
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js" integrity="sha384-9/reFTGAW83EW2RDu2S0VKaIzap3H66lZH81PoYlFhbGU+6BZp6G7niu735Sk7lN" crossorigin="anonymous"></script>
@@ -345,5 +455,3 @@ Prior to this date, figures only include those tested through NHS labs.</small><
   </body>
 </html>
 HTML
-
-say "<!-- Generated in " . tv_interval( $t0 ) . " seconds -->";
