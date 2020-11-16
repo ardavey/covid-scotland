@@ -71,36 +71,34 @@ foreach ( @{ $deaths_data{dates} } ) {
 $deaths_data{labels_dates} = "'".join( "', '", @{ $deaths_data{dates} } )."'";
 $deaths_data{values_cumulative_deaths} = join( ', ', @{ $deaths_data{cumulative_deaths} } );
 $deaths_data{values_delta_deaths} = join( ', ', @{ $deaths_data{delta_deaths} } );
+$deaths_data{new_deaths} = $deaths_data{delta_deaths}->[-1];
+$deaths_data{new_deaths_plural} = $deaths_data{new_deaths} == 1 ? '' : 's';
 
 print "Content-type:text/html\r\n\r\n";
 
-say <<'HTML';
+say <<HTML;
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" integrity="sha384-JcKb8q3iqJ61gNV9KGb8thSsNjpSL0n8PARn9HuZOnIxN0hoP+VmmDGMN5t9UJ0Z" crossorigin="anonymous">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" integrity="sha384-JcKb8q3iqJ61gNV9KGb8thSsNjpSL0n8PARn9HuZOnIxN0hoP+VmmDGMN5t9UJ0Z" crossorigin="anonymous">
 
-    <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@2.8.0"></script>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js\@2.8.0"></script>
 
-    <title>COVID-19 in Scotland</title>
-  </head>
-  <body>
+  <title>COVID-19 in Scotland</title>
+</head>
+<body>
+  <div class="container">
   
-<div class="container">
-HTML
-
-say <<HTML;
-<h3>COVID-19 in Scotland - $date</h3>
-
-<div class="alert alert-primary">There were <mark>$nhs_board_data{Scotland}->{delta} new cases</mark> of COVID-19 and <mark>$deaths_data{delta_deaths}->[-1] new confirmed death(s)</mark> recorded in Scotland on $date.</div>
-
-<hr width="75%" />
-
-<h4>New Cases Today by NHS Board</h4>
-
+    <h3>COVID-19 in Scotland - $date</h3>
+    
+    <div class="alert alert-primary">There were <mark>$nhs_board_data{Scotland}->{delta}</mark> new cases of COVID-19 and <mark>$deaths_data{new_deaths}</mark> new confirmed death$deaths_data{new_deaths_plural} recorded in Scotland on $date.</div>
+    
+    <hr width="75%" />
+    
+    <h4>New Cases Today by NHS Board</h4>
 HTML
 
 my @nhs_boards = keys %nhs_board_data;
@@ -111,12 +109,12 @@ shift @ordered_nhs_boards;
 say <<HTML;
 <div class="table-responsive">
 
-<table class="table table-sm table-striped">
-<thead class="thead-light">
-  <th scope="col">NHS Board</th>
-  <th scope="col">New Cases <small>(Delta)</small></th>
-</thead>
-<tbody>
+  <table class="table table-sm table-striped">
+    <thead class="thead-light">
+      <th scope="col">NHS Board</th>
+      <th scope="col">New Cases <small>(Delta)</small></th>
+    </thead>
+    <tbody>
 HTML
 
 foreach my $board ( @ordered_nhs_boards ) {
@@ -124,16 +122,16 @@ foreach my $board ( @ordered_nhs_boards ) {
            && $nhs_board_data{$board}->{delta_delta} == 0 );
   
 say <<HTML;
-  <tr>
-    <td>$board</td>
-    <td>$nhs_board_data{$board}->{delta} <small>($nhs_board_data{$board}->{delta_delta})</small></td>
-  </tr>
+      <tr>
+        <td>$board</td>
+        <td>$nhs_board_data{$board}->{delta} <small>($nhs_board_data{$board}->{delta_delta})</small></td>
+      </tr>
 HTML
 }
 
 say <<HTML;
-</tbody>
-</table>
+    </tbody>
+  </table>
 </div>
 
 <hr width="75%" />
@@ -141,23 +139,23 @@ say <<HTML;
 <h4>Graphs</h4>
 
 <ul class="nav nav-tabs" id="myTab" role="tablist">
-    <li class="nav-item">
-        <a class="nav-link active" id="scotland-graph-tab" data-toggle="tab" href="#nationalgraph" role="tab" aria-controls="nationalgraph" aria-selected="false">National Cases</a>
-    </li>
-    <li class="nav-item">
-        <a class="nav-link" id="deaths-graph-tab" data-toggle="tab" href="#deathsgraph" role="tab" aria-controls="deathsgraph" aria-selected="false">National Deaths</a>
-    </li>
-    <li class="nav-item">
-        <a class="nav-link" id="nhs-board-graph-tab" data-toggle="tab" href="#nhsboardgraph" role="tab" aria-controls="nhsboardgraph" aria-selected="true">NHS Board Cases</a>
-    </li>
-    <!-- <li class="nav-item">
-        <a class="nav-link" id="tests-graph-tab" data-toggle="tab" href="#testsgraph" role="tab" aria-controls="testsgraph" aria-selected="false">Tests</a>
-    </li> -->
+  <li class="nav-item">
+    <a class="nav-link active" id="scotland-graph-tab" data-toggle="tab" href="#nationalgraph" role="tab" aria-controls="nationalgraph" aria-selected="false">National Cases</a>
+  </li>
+  <li class="nav-item">
+    <a class="nav-link" id="deaths-graph-tab" data-toggle="tab" href="#deathsgraph" role="tab" aria-controls="deathsgraph" aria-selected="false">National Deaths</a>
+  </li>
+  <li class="nav-item">
+    <a class="nav-link" id="nhs-board-graph-tab" data-toggle="tab" href="#nhsboardgraph" role="tab" aria-controls="nhsboardgraph" aria-selected="true">NHS Board Cases</a>
+  </li>
+  <!-- <li class="nav-item">
+    <a class="nav-link" id="tests-graph-tab" data-toggle="tab" href="#testsgraph" role="tab" aria-controls="testsgraph" aria-selected="false">Tests</a>
+  </li> -->
 </ul>
 
 <div class="tab-content" id="myTabContent">
-    <br />
-    <div class="tab-pane fade" id="nhsboardgraph" role="tabpanel" aria-labelledby="nhs-board-graph-tab">
+  <br />
+  <div class="tab-pane fade" id="nhsboardgraph" role="tabpanel" aria-labelledby="nhs-board-graph-tab">
     
 HTML
 
@@ -182,10 +180,10 @@ var regionalLabels = [$labels];
 
 var ctx = document.getElementById('regionalChart').getContext('2d');
 var regionalChart = new Chart(ctx, {
-    type: 'line',
-    data: {
-        labels: regionalLabels,
-        datasets: [
+  type: 'line',
+  data: {
+    labels: regionalLabels,
+    datasets: [
 HTML
 
 foreach my $col ( 2..15 ) {
@@ -196,40 +194,44 @@ foreach my $col ( 2..15 ) {
   my $values = join( ", ", @values );
   my $colour = $colours[$col-2];
   say <<DATASET;
-        {
-            label: '$board',
-            backgroundColor: '$colour',
-            borderColor: '$colour',
-            borderWidth: 1,
-            data: [$values],
-            fill: false,
-            pointRadius: 1,
-            pointHoverRadius: 2,
-        },
+      {
+        label: '$board',
+        backgroundColor: '$colour',
+        borderColor: '$colour',
+        borderWidth: 1,
+        data: [$values],
+        fill: false,
+        pointRadius: 1,
+        pointHoverRadius: 2,
+      },
 DATASET
-
 }
 
 say <<HTML;
-      ]
+    ]
+  },
+  options: {
+    responsive: true,
+    title: {
+      display: true,
+      text: regionalTitle,
     },
-    options: {
-      responsive: true,
-      title: {
-        display: true,
-        text: regionalTitle,
-      },
-      legend: {
-        display: false,
-        position: 'bottom'
-      },
-      scales: {}
-    }
+    tooltips: {
+      mode: 'index',
+      intersect: false,
+      position: 'nearest',
+    },
+    legend: {
+      display: false,
+      position: 'bottom'
+    },
+    scales: {}
+  }
 });
-
+  
 </script>
-
-    </div>
+  
+</div>
 HTML
 
 
@@ -249,15 +251,15 @@ $deltas[100] = 0;
 my $deltas = join( ', ', @deltas );
 
 say <<HTML;  
-  <div class="tab-pane fade show active" id="nationalgraph" role="tabpanel" aria-labelledby="national-graph-tab">
+<div class="tab-pane fade show active" id="nationalgraph" role="tabpanel" aria-labelledby="national-graph-tab">
 
 <canvas id="nationalChart" width="100%" height="70px"></canvas>
 
 <button type="button" class="btn btn-outline-info btn-sm" id="toggleZoomNational">Toggle All/Last 30 days</button>
 
 <script>
-var nationalTitle = 'National Cumulative Cases / Cases Per Day - All Time';
-var nationalTitle30 = 'National Cumulative Cases / Cases Per Day - Last 30 Days';
+var nationalTitle = 'National Cumulative/Daily Cases - All Time';
+var nationalTitle30 = 'National Cumulative/Daily Cases - Last 30 Days';
 
 var nationalLabels = [$labels];
 var nationalDataCumulative = [$values];
@@ -305,18 +307,19 @@ var nationalChart = new Chart(ctx, {
       tooltips: {
         mode: 'index',
         intersect: false,
+        position: 'nearest',
       },
       scales: {
         yAxes: [{
           type: 'linear',
           display: true,
           position: 'left',
-          id: 'y-axis-2',
+          id: 'y-axis-1',
         }, {
           type: 'linear',
           display: true,
           position: 'right',
-          id: 'y-axis-1',
+          id: 'y-axis-2',
 
           // grid line settings
           gridLines: {
@@ -345,8 +348,8 @@ document.getElementById('toggleZoomNational').addEventListener('click', function
 <button type="button" class="btn btn-outline-info btn-sm" id="toggleZoomDeaths">Toggle All/Last 30 days</button>
 
 <script>
-var title = 'National Cumulative Deaths / Deaths Per Day - All Time';
-var title30 = 'National Cumulative Deaths / Deaths Per Day - Last 30 Days';
+var title = 'National Cumulative/Daily Deaths - All Time';
+var title30 = 'National Cumulative/Daily Deaths - Last 30 Days';
 
 var labels = [$deaths_data{labels_dates}];
 var dataCumulative = [$deaths_data{values_cumulative_deaths}];
@@ -394,18 +397,19 @@ var deathsChart = new Chart(ctx, {
       tooltips: {
         mode: 'index',
         intersect: false,
+        position: 'nearest',
       },
       scales: {
         yAxes: [{
           type: 'linear',
           display: true,
           position: 'left',
-          id: 'y-axis-2',
+          id: 'y-axis-1',
         }, {
           type: 'linear',
           display: true,
           position: 'right',
-          id: 'y-axis-1',
+          id: 'y-axis-2',
 
           // grid line settings
           gridLines: {
@@ -438,8 +442,7 @@ document.getElementById('toggleZoomDeaths').addEventListener('click', function()
 <p><small>Note: The spike on 15 June 2020 is due to the inclusion of results from the UK Gov testing programme.
 Prior to this date, figures only include those tested through NHS labs.</small></p>
 
-<p><small>Data is extracted automatically from the <a href='$source_page'>Scottish Government website</a>.<br />
-The source site is updated daily at 14:00 UK time and this site updates at 14:05.</small></p>
+<p><small>Data is extracted automatically from the <a href='$source_page'>Scottish Government website</a>. The source site is updated daily at 14:00 UK time and this site updates at 14:05.</small></p>
 </div>
 
 HTML
